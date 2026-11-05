@@ -12,12 +12,35 @@ permissions:
 
 jobs:
   build:
-    name: ${{ matrix.os }}
+    name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest, windows-latest ]
+        include:
+          - name: windows-msvc
+            os: windows-2025
+            release: true
+          - name: windows-clang-cl
+            os: windows-2025
+            toolset: ClangCL
+          - name: linux-gcc-13
+            os: ubuntu-24.04
+            cc: gcc-13
+            cxx: g++-13
+          - name: linux-gcc-14
+            os: ubuntu-24.04
+            cc: gcc-14
+            cxx: g++-14
+            release: true
+          - name: linux-clang-18
+            os: ubuntu-24.04
+            cc: clang-18
+            cxx: clang++-18
+
+    env:
+      CC: ${{ matrix.cc }}
+      CXX: ${{ matrix.cxx }}
 
     steps:
     - uses: actions/checkout@v4
@@ -28,23 +51,33 @@ jobs:
       with:
         python-version: "3.12"
 
-    - name: install SFML dependencies
+    - name: install SFML dependencies and compilers
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
-        sudo apt-get install -y libxrandr-dev libxcursor-dev libudev-dev libfreetype-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libegl1-mesa-dev libx11-dev
+        sudo apt-get install -y gcc-13 g++-13 gcc-14 g++-14 clang-18 libxrandr-dev libxcursor-dev libudev-dev libfreetype-dev libopenal-dev libflac-dev libvorbis-dev libgl1-mesa-dev libegl1-mesa-dev libx11-dev
+
+    - name: compiler version
+      if: runner.os == 'Linux'
+      run: $CXX --version
 
     - name: build, test, package
       id: release
-      run: python scripts/release.py
+      shell: bash
+      run: |
+        if [ -n "${{ matrix.toolset }}" ]; then
+          python scripts/release.py --toolset "${{ matrix.toolset }}"
+        else
+          python scripts/release.py
+        fi
 
     - uses: actions/upload-artifact@v4
       with:
-        name: DziaGame-${{ steps.release.outputs.version }}-${{ runner.os }}
+        name: DziaGame-${{ steps.release.outputs.version }}-${{ matrix.name }}
         path: ${{ steps.release.outputs.archive }}
 
     - name: publish release
-      if: startsWith(github.ref, 'refs/tags/v')
+      if: matrix.release && startsWith(github.ref, 'refs/tags/v')
       uses: softprops/action-gh-release@v2
       with:
         files: ${{ steps.release.outputs.archive }}

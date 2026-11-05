@@ -14,7 +14,7 @@ Ready-to-run zip archives for Windows and Linux are attached to every [release](
 
 ## Build
 
-Requirements: CMake 3.28+, a C++17 compiler (MSVC 2022, GCC or Clang), Python 3 and Git.
+Requirements: CMake 3.28+, a C++17 compiler (MSVC, GCC 13+ or Clang 18+), Python 3 and Git.
 SFML 2.6.2 is downloaded and built automatically with CMake `FetchContent`, so nothing has to be installed by hand and no DLLs are stored in the repository.
 
 ```
@@ -41,6 +41,8 @@ The version is taken from the latest `v*` git tag.
 python scripts/release.py
 ```
 
+A compiler can be chosen with `CC`/`CXX` on Linux (`CC=clang-18 CXX=clang++-18 python3 scripts/release.py`) or with a Visual Studio toolset on Windows (`python scripts/release.py --toolset ClangCL`).
+
 ### Building in WSL
 
 The Linux build can be done on Windows inside WSL2. Use Ubuntu 24.04: it ships CMake 3.28, while Ubuntu 22.04 has only 3.22.
@@ -62,7 +64,17 @@ On Windows 11 the game window opens through WSLg.
 
 ## CI
 
-GitHub Actions builds and tests the game on `windows-latest` and `ubuntu-latest` on every push and pull request, and uploads the zip archives as artifacts.
+GitHub Actions builds and tests the game with five toolchains on every push and pull request:
+
+| Job | OS | Compiler |
+|---|---|---|
+| windows-msvc | Windows Server 2025 | MSVC |
+| windows-clang-cl | Windows Server 2025 | Clang (clang-cl, Visual Studio `ClangCL` toolset) |
+| linux-gcc-13 | Ubuntu 24.04 | GCC 13 |
+| linux-gcc-14 | Ubuntu 24.04 | GCC 14 |
+| linux-clang-18 | Ubuntu 24.04 | Clang 18 |
+
+Every job uploads its zip archive as an artifact. The release archives are produced by MSVC and GCC 14.
 Pushing a `v*` tag also publishes the archives as a GitHub Release:
 
 ```

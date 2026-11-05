@@ -42,6 +42,7 @@ def main():
     parser.add_argument("--dist-dir", default="dist")
     parser.add_argument("--config", default="Release")
     parser.add_argument("--generator")
+    parser.add_argument("--toolset")
     parser.add_argument("--skip-tests", action="store_true")
     args = parser.parse_args()
 
@@ -54,6 +55,8 @@ def main():
     configure = ["cmake", "-S", ROOT, "-B", build_dir, "-DCMAKE_BUILD_TYPE=" + args.config]
     if args.generator:
         configure += ["-G", args.generator]
+    if args.toolset:
+        configure += ["-T", args.toolset]
     run(configure)
     run(["cmake", "--build", build_dir, "--config", args.config, "--parallel"])
 
